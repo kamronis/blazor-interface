@@ -1,0 +1,144 @@
+﻿@page "/"
+@using Data_UI2.Data
+@inject DataService DataService
+
+
+<h2>Организации</h2>
+<div class="container-fluid">
+    <MatTable Items="@organizations" ShowPaging="false" class="mat-elevation-z5" style="width:auto;">
+        <MatTableHeader>
+            <th>Название</th>
+        </MatTableHeader>
+        <MatTableRow>
+            <td>@context.name</td>
+            <td><MatButton OnClick="@(e => { OpenOrgDialog(context.name, context); })">Редактировать</MatButton></td>
+            <td><MatButton OnClick="@(e => { DeleteOrg(context); })">Удалить</MatButton></td>
+        </MatTableRow>
+    </MatTable>
+</div>
+
+<MatButton Raised="true" OnClick="@(e => { OpenOrgDialog(); })" Style="margin-bottom:20px;">Добавить организацию</MatButton>
+
+<MatDialog @bind-IsOpen="@dialogOrgIsOpen">
+    <MatDialogTitle>Редактор</MatDialogTitle>
+    <MatDialogContent>
+        <p>Название организации</p>
+        <MatTextField @bind-Value="@dialogOrgName" FullWidth="true"></MatTextField>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton Outlined="true" OnClick="@(e => { dialogOrgIsOpen = false; })"  Style="margin-right:10px;">Отмена</MatButton>
+        <MatButton Outlined="true" OnClick="@SaveOrg">Сохранить</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+<h2>Персоны</h2>
+<div class="container-fluid">
+    <MatTable Items="@persons" ShowPaging="false" class="mat-elevation-z5" style="width:auto;">
+        <MatTableHeader>
+            <th>Имя</th>
+            <th>Организация</th>
+        </MatTableHeader>
+        <MatTableRow>
+            <td>@context.name</td>
+            <td>@context.organization.name</td>
+            <td><MatButton OnClick="@(e => { OpenPersonDialog(context.name, context.organization, context); })">Редактировать</MatButton></td>
+            <td><MatButton OnClick="@(e => { DeletePerson(context); })">Удалить</MatButton></td>
+        </MatTableRow>
+    </MatTable>
+</div>
+
+<MatButton Raised="true" OnClick="@(e => { OpenPersonDialog(); })" Style="margin-bottom:20px;">Добавить персону</MatButton>
+
+<MatDialog @bind-IsOpen="@dialogPersonIsOpen">
+    <MatDialogTitle>Редактор</MatDialogTitle>
+    <MatDialogContent>
+        <p>Имя</p>
+        <MatTextField @bind-Value="@dialogPersonName" FullWidth="true"></MatTextField>
+        <p>Организация</p>
+        <MatSelectItem @bind-Value="@dialogOrgSelected" Items="@organizations"><ItemTemplate>@context?.name</ItemTemplate></MatSelectItem>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton Outlined="true" OnClick="@(e => { dialogPersonIsOpen = false; })" Style="margin-right:10px;">Отмена</MatButton>
+        <MatButton Outlined="true" OnClick="@SavePerson">Сохранить</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+
+@code {
+    bool dialogOrgIsOpen = false;
+    Organization dialogOrgEdit;
+    string dialogOrgName = null;
+
+    bool dialogPersonIsOpen = false;
+    Person dialogPersonEdit;
+    string dialogPersonName = null;
+
+    Organization dialogOrgSelected;
+
+    private Organization[] organizations;
+
+    private Person[] persons;
+    void OpenOrgDialog(String name = null, Organization edit = null)
+    {
+        dialogOrgIsOpen = true;
+        dialogOrgEdit = edit;
+        dialogOrgName = name;
+    }
+
+    void OpenPersonDialog(String name = null, Organization org = null, Person edit = null)
+    {
+        dialogPersonIsOpen = true;
+        dialogPersonEdit = edit;
+        dialogPersonName = name;
+        dialogOrgSelected = org;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        organizations = await DataService.GetOrganizations();
+        persons = await DataService.GetPersons();
+    }
+
+    async void SaveOrg()
+    {
+        dialogOrgIsOpen = false;
+        if (dialogOrgEdit != null)
+        {
+            var result = DataService.EditOrganization(dialogOrgEdit, dialogOrgName);
+        }
+        else
+        {
+            Organization organzation = new Organization(dialogOrgName);
+            var result = DataService.AddOrganization(organzation);
+        }
+
+        organizations = await DataService.GetOrganizations();
+    }
+
+    async void DeleteOrg(Organization org)
+    {
+        var result = DataService.DeleteOrganization(org);
+        organizations = await DataService.GetOrganizations();
+    }
+
+    async void SavePerson()
+    {
+        dialogPersonIsOpen = false;
+        if (dialogPersonEdit != null)
+        {
+            var result = DataService.EditPerson(dialogPersonEdit, dialogPersonName, dialogOrgSelected);
+        }
+        else
+        {
+            Person person = new Person(dialogPersonName, dialogOrgSelected);
+            var result = DataService.AddPerson(person);
+        }
+        persons = await DataService.GetPersons();
+    }
+
+    async void DeletePerson(Person person)
+    {
+        var result = DataService.DeletePerson(person);
+        persons = await DataService.GetPersons();
+    }
+}
